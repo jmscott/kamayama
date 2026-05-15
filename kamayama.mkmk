@@ -35,7 +35,7 @@
 #  removed in "clean" recipes.
 #
 COMPILEs="
-	merge-ParseRequestURI
+	upsert-ParseRequestURI
 "
 
 LIBs="

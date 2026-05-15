@@ -1,8 +1,8 @@
 /*
  *  Synopsis:
- *	Merge rows from stdin into various tables kamayama.ParseRequestURI*
+ *	Upsert rows from stdin into various tables kamayama.ParseRequestURI*
  *  Exit Code:
- *	0	all rows merged.
+ *	0	all rows upserted.
  *	1	parse error on a url read from stdin. does not stop parsing.
  *	2	unexpeccted database error
  *	3	unexpected system error
@@ -22,8 +22,8 @@ import (
 )
 
 /*
- *  0:	all urls parsed ok and merged into db (OK)
- *  1:	at least one url parse failed, error merged into db (WARN)
+ *  0:	all urls parsed ok and upserted into db (OK)
+ *  1:	at least one url parse failed, error upserted into db (WARN)
  *  2:	fatal sql error (ERROR)
  *  3:	fatal unexpected system error (ERROR)
  */
@@ -61,14 +61,18 @@ func dieq(format string, args ...interface{}) {
 
 func warn(format string, args ...interface{}) {
 	
-	format = fmt.Sprintf("WARN: stdin line %d: %s\n", scan_line_no, format)
+	format = fmt.Sprintf(
+			"WARN: ParseRequestURI(stdin) failed: line %d: %s\n",
+			scan_line_no,
+			format,
+	)
 	fmt.Fprintf(os.Stderr, format, args...)
 	exit_code = 1
 }
 
 func warn_url(rawURL string, parse_err error) {
 
-	warn("ParseRequestURI() failed: %s",  parse_err)
+	warn("%s",  parse_err)
 	_, err := db.Exec(ctx, `
 			INSERT INTO golang_net_url_ParseRequestURI(
 				rawURL, error
@@ -82,8 +86,16 @@ func warn_url(rawURL string, parse_err error) {
 	}
 }
 
-//  insert an error tuple for a parsed url
-func merge(rawURL string) {
+func commit(what string, txn pgx.Tx) {
+	
+	err := txn.Commit(ctx)
+	if err != nil {
+		dieq("txn.Commit(%s) failed: %s", what, err)
+	}
+}
+
+//  upsert an error tuple for a parsed url
+func upsert(rawURL string) {
 
 	txn, err := db.Begin(ctx)
 	if err != nil {
@@ -100,6 +112,7 @@ func merge(rawURL string) {
 	u, err := url.ParseRequestURI(rawURL)
 	if err != nil {
 		warn_url(rawURL, err)
+		commit("parse", txn)
 		return
 	}
 	userinfo := ""
@@ -169,7 +182,7 @@ func merge(rawURL string) {
 			}
 		}
 	}
-	txn.Commit(ctx)
+	commit("upsert", txn)
 }
 
 func main() {
@@ -215,7 +228,7 @@ func main() {
 		if rawURL == "" {
 			die("stdin: empty string near line %d", scan_line_no)
 		}
-		merge(rawURL)
+		upsert(rawURL)
 	}
 	os.Exit(exit_code)
 }

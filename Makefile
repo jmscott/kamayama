@@ -1,12 +1,12 @@
 GO=/opt/local/bin/go
 
-all: merge-ParseRequestURI
+all: upsert-ParseRequestURI
 
 clean:
-	rm -f merge-ParseRequestURI
+	rm -f upsert-ParseRequestURI
 world:
 	make clean
 	make all
 	
-merge-ParseRequestURI: merge-ParseRequestURI.go
-	$(GO) build merge-ParseRequestURI.go
+upsert-ParseRequestURI: upsert-ParseRequestURI.go
+	$(GO) build upsert-ParseRequestURI.go
