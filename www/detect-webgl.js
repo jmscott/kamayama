@@ -17,6 +17,19 @@
 			Listen for the webglcontextcreationerror event to catch
 			cases where context creation fails due to blacklisted
 			GPUs or disabled settings.
+
+		// Detect WebGL 1
+		const canvas1 = document.createElement('canvas');
+		const gl1 = canvas1.getContext('webgl') ||
+			canvas1.getContext('experimental-webgl');
+		const hasWebGL1 = !!gl1;
+
+		// Detect WebGL 2
+		const canvas2 = document.createElement('canvas');
+		const gl2 = canvas2.getContext('webgl2');
+		const hasWebGL2 = !!gl2;
+
+		console.log(`WebGL 1: ${hasWebGL1}, WebGL 2: ${hasWebGL2}`);   
 */
 function detectWebGL() {
     try {
